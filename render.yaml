@@ -5,5 +5,3 @@ services:
     dockerfilePath: Dockerfile
     repo: https://github.com/mjangra356/jwt-example
     branch: master
-    buildCommand: mvn clean package -DskipTests
-    startCommand: java -jar target/jwt-auth-example-1.0.0.jar
