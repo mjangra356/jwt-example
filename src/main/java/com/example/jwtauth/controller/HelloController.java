@@ -16,5 +16,9 @@ public class HelloController {
     public String userHello() {
         return "Hello User!";
     }
+    @GetMapping("")
+    public String health() {
+        return "UP";
+    }
 }
 
