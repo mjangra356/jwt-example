@@ -12,11 +12,23 @@ public class DownloadController {
 
     @GetMapping("/jwt")
     public ResponseEntity<Resource> downloadZip() throws IOException {
+        Resource resource;
         Path zipPath = Paths.get("src/main/resources/static/src.zip");
-        Resource resource = new InputStreamResource(Files.newInputStream(zipPath));
+        if (Files.exists(zipPath)) {
+            // ✅ File exists on disk (local dev)
+            resource = new InputStreamResource(Files.newInputStream(zipPath));
+        } else {
+            // ✅ Fall back to classpath (packaged inside the JAR)
+            resource = new ClassPathResource("static/src.zip");
+            if (!resource.exists()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .build();
+            }
+        }
+
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=jwt-auth-example.zip")
+                        "attachment; filename=src.zip")
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(resource);
     }
