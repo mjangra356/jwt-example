@@ -10,7 +10,7 @@ import java.nio.file.*;
 @RestController
 public class DownloadController {
 
-    @GetMapping("/jwt")
+    @GetMapping("/hello")
     public ResponseEntity<Resource> downloadZip() throws IOException {
         Resource resource;
         Path zipPath = Paths.get("src/main/resources/static/src.zip");
