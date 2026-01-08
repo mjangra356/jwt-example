@@ -291,7 +291,6 @@
             flex: 1;
             width: 100%;
             overflow-y: auto;
-            /* Allow creating scrollbar if content is tall */
             padding-right: 0.5rem;
         }
 
@@ -301,11 +300,13 @@
             border-radius: 8px;
             padding: 1rem;
             flex: 1;
+            /* Force width sharing */
+            width: 0;
+            min-width: 250px;
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
             min-height: 200px;
-            /* Ensure boxes don't shrink too much */
         }
 
         .diff-title {
@@ -313,13 +314,16 @@
             color: var(--text-sub);
             text-transform: uppercase;
             font-size: 0.8rem;
+            white-space: nowrap;
+            /* Prevent title wrap messing up height */
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .diff-list {
             overflow-y: auto;
             flex: 1;
             min-height: 0;
-            /* Needed for flex scrolling */
         }
 
         .diff-item {
@@ -327,18 +331,18 @@
             border-bottom: 1px solid var(--border);
             font-size: 0.9rem;
             word-break: break-word;
-            /* Prevent cutoff long names */
         }
 
-        .rel-row {
+        .diff-row {
             display: flex;
+            flex-direction: row;
+            /* Explicit */
             gap: 1rem;
             width: 100%;
-            /* Allow wrapping on small screens? No, user has wide screen likely. */
-            flex: 1;
-            min-height: 400px;
-            /* Force minimum height for relationship row */
-            flex-shrink: 0;
+            /* Let height be determined by content, not forced split */
+            flex: 0 0 auto;
+            flex-wrap: wrap;
+            /* Allow wrapping if screen is tiny, but should be row mostly */
         }
 
         .diff-missing {
@@ -508,7 +512,7 @@
                 currentExtractionData = data.json;
 
                 // Update UI
-                resultImage.src = data.debug_image_url;
+                resultImage.src = data.original_image_url;
                 jsonOutput.innerHTML = syntaxHighlight(data.json);
                 resultsSection.classList.add('active');
 
@@ -591,24 +595,27 @@
             const mismatchRenderer = (m) => `<strong>${m.from} &rarr; ${m.to}</strong><br>Src: ${m.source_ownership} | Ext: ${m.extracted_ownership}`;
 
             // 1. Entities Row
-            const row1 = document.createElement('div');
-            row1.style.display = 'flex';
-            row1.style.gap = '1rem';
-            row1.innerHTML = "<h3 style='width:100%; margin-bottom:0.5rem; color:var(--text-sub)'>Entities</h3>";
-            row1.style.flexWrap = "wrap";
+            const h1 = document.createElement('h3');
+            h1.style.cssText = 'width:100%; margin-bottom:0.5rem; color:var(--text-sub)';
+            h1.innerText = 'Entities';
+            container.appendChild(h1);
 
-            container.appendChild(row1);
-            container.appendChild(createBox("Missing Entities (In Source)", diff.entities.missing, "diff-missing", entityRenderer));
-            container.appendChild(createBox("Extra Entities (In Extracted)", diff.entities.extra, "diff-unexpected", entityRenderer));
+            const entContainer = document.createElement('div');
+            entContainer.className = 'diff-row';
+            entContainer.style.width = '100%'; // Ensure full width
+            entContainer.appendChild(createBox("Missing Entities (In Source)", diff.entities.missing, "diff-missing", entityRenderer));
+            entContainer.appendChild(createBox("Extra Entities (In Extracted)", diff.entities.extra, "diff-unexpected", entityRenderer));
+            container.appendChild(entContainer);
 
             // 2. Relationships Row
-            const row2 = document.createElement('div');
-            row2.style.marginTop = "2rem"; // Removed flex from label row to keep it clean
-            row2.innerHTML = "<h3 style='width:100%; margin-bottom:0.5rem; color:var(--text-sub)'>Relationships</h3>";
-            container.appendChild(row2);
+            const h2 = document.createElement('h3');
+            h2.style.cssText = 'width:100%; margin-bottom:0.5rem; margin-top:2rem; color:var(--text-sub)';
+            h2.innerText = 'Relationships';
+            container.appendChild(h2);
 
             const relContainer = document.createElement('div');
-            relContainer.className = 'rel-row';
+            relContainer.className = 'diff-row';
+            relContainer.style.width = '100%'; // Ensure full width
 
             relContainer.appendChild(createBox("Missing Links", diff.relationships.missing, "diff-missing", relRenderer));
             relContainer.appendChild(createBox("Extra Links", diff.relationships.extra, "diff-unexpected", relRenderer));
