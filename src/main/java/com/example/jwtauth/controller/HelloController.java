@@ -21,12 +21,8 @@ public class HelloController {
     public String userHello() {
         return "Hello User!";
     }
-    @GetMapping("")
-    public String health() {
-        return "UP";
-    }
     
-    @GetMapping("/front")
+    @GetMapping("")
     public ResponseEntity<Resource> index() {
         Resource resource = new ClassPathResource("static/index.html");
         return ResponseEntity.ok()
