@@ -394,7 +394,8 @@
                 </div>
 
                 <div class="json-view">
-                    <h3>Extracted Data</h3>
+                    <h3>Extracted Data <span id="relationshipCount"
+                            style="font-size:0.7em; color:var(--primary); margin-left:10px;"></span></h3>
                     <pre id="jsonOutput"></pre>
                 </div>
             </div>
@@ -514,6 +515,11 @@
                 // Update UI
                 resultImage.src = data.original_image_url;
                 jsonOutput.innerHTML = syntaxHighlight(data.json);
+
+                // Update Relationship Count
+                const relCount = data.json.relationships ? data.json.relationships.length : 0;
+                document.getElementById('relationshipCount').innerText = `(${relCount} relationships found)`;
+
                 resultsSection.classList.add('active');
 
             } catch (error) {
@@ -559,7 +565,63 @@
             const container = document.getElementById('compareResults');
             container.innerHTML = ""; // Clear
 
-            // Helper to create box
+            // Add Legend
+            const legend = document.createElement('div');
+            legend.style.cssText = 'display:flex; gap:1rem; margin-bottom:1rem; font-size:0.9rem; color:var(--text-sub);';
+            legend.innerHTML = `
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <div style="width:12px; height:12px; background-color:#f87171; border-radius:2px;"></div>
+                    <span>Missing (In Source)</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                    <div style="width:12px; height:12px; background-color:#fbbf24; border-radius:2px;"></div>
+                    <span>Additional (In Extracted)</span>
+                </div>
+            `;
+            container.appendChild(legend);
+
+            // Helper to create a single unified box for Missing & Extra
+            function createUnifiedBox(title, missingItems, extraItems, renderer) {
+                const box = document.createElement('div');
+                box.className = 'diff-box';
+
+                const count = missingItems.length + extraItems.length;
+                const h = document.createElement('div');
+                h.className = 'diff-title';
+                h.innerText = title + ` (${count})`;
+                box.appendChild(h);
+
+                const list = document.createElement('div');
+                list.className = 'diff-list';
+
+                if (count === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'diff-item';
+                    empty.style.color = '#94a3b8';
+                    empty.innerText = "Match";
+                    list.appendChild(empty);
+                } else {
+                    // Render Missing (Red)
+                    missingItems.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'diff-item diff-missing';
+                        div.innerHTML = '<strong>Missing: </strong>' + renderer(item);
+                        list.appendChild(div);
+                    });
+
+                    // Render Extra (Yellow)
+                    extraItems.forEach(item => {
+                        const div = document.createElement('div');
+                        div.className = 'diff-item diff-unexpected';
+                        div.innerHTML = '<strong>Additional: </strong>' + renderer(item);
+                        list.appendChild(div);
+                    });
+                }
+                box.appendChild(list);
+                return box;
+            }
+
+            // Helper for single type (used for Mismatch)
             function createBox(title, items, type, renderer) {
                 const box = document.createElement('div');
                 box.className = 'diff-box';
@@ -602,23 +664,29 @@
 
             const entContainer = document.createElement('div');
             entContainer.className = 'diff-row';
-            entContainer.style.width = '100%'; // Ensure full width
-            entContainer.appendChild(createBox("Missing Entities (In Source)", diff.entities.missing, "diff-missing", entityRenderer));
-            entContainer.appendChild(createBox("Extra Entities (In Extracted)", diff.entities.extra, "diff-unexpected", entityRenderer));
+            entContainer.style.width = '100%';
+
+            // Unified Box for Entities
+            entContainer.appendChild(createUnifiedBox("Entity Differences", diff.entities.missing, diff.entities.extra, entityRenderer));
             container.appendChild(entContainer);
 
             // 2. Relationships Row
             const h2 = document.createElement('h3');
             h2.style.cssText = 'width:100%; margin-bottom:0.5rem; margin-top:2rem; color:var(--text-sub)';
-            h2.innerText = 'Relationships';
+            h2.innerHTML = `Relationships <span style="font-size:0.8em; color:var(--text-sub); font-weight:normal">
+                (Extracted: <span style="color:var(--text-main)">${diff.counts.extracted_relationships}</span> | 
+                 Source: <span style="color:var(--text-main)">${diff.counts.source_relationships}</span>)
+            </span>`;
             container.appendChild(h2);
 
             const relContainer = document.createElement('div');
             relContainer.className = 'diff-row';
-            relContainer.style.width = '100%'; // Ensure full width
+            relContainer.style.width = '100%';
 
-            relContainer.appendChild(createBox("Missing Links", diff.relationships.missing, "diff-missing", relRenderer));
-            relContainer.appendChild(createBox("Extra Links", diff.relationships.extra, "diff-unexpected", relRenderer));
+            // Unified Box for Relationships (Missing + Extra)
+            relContainer.appendChild(createUnifiedBox("Link Differences", diff.relationships.missing, diff.relationships.extra, relRenderer));
+
+            // Keep Mismatches separate as it's a different category (not just presence)
             relContainer.appendChild(createBox("Ownership Mismatches", diff.relationships.mismatched_ownership, "diff-mismatch", mismatchRenderer));
 
             container.appendChild(relContainer);
